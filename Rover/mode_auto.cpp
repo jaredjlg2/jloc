@@ -15,6 +15,7 @@ bool ModeAuto::_enter()
 
     // other initialisation
     auto_triggered = false;
+    _loiter_radius_override_m = 0.0f;
 
     // clear guided limits
     rover.mode_guided.limit_clear();
@@ -451,8 +452,10 @@ bool ModeAuto::check_trigger(void)
 
 bool ModeAuto::start_loiter()
 {
+    rover.mode_loiter.set_radius_override(_loiter_radius_override_m);
     if (rover.mode_loiter.enter()) {
         _submode = SubMode::Loiter;
+        _loiter_radius_override_m = 0.0f;
         return true;
     }
     return false;
@@ -730,6 +733,12 @@ bool ModeAuto::do_nav_wp(const AP_Mission::Mission_Command& cmd, bool always_sto
     // retrieve and sanitize target location
     Location cmdloc = cmd.content.location;
     cmdloc.sanitize(rover.current_loc);
+
+    if (cmd.id == MAV_CMD_NAV_LOITER_TIME || cmd.id == MAV_CMD_NAV_LOITER_UNLIM) {
+        _loiter_radius_override_m = fabsf(cmd.content.location.alt) * 0.01f;
+    } else {
+        _loiter_radius_override_m = 0.0f;
+    }
 
     // delayed stored in p1 in seconds
     loiter_duration = ((int16_t) cmd.p1 < 0) ? 0 : cmd.p1;

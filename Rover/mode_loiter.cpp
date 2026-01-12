@@ -24,14 +24,27 @@ bool ModeLoiter::_enter()
     return true; 
 }
 
+void ModeLoiter::_exit()
+{
+    _loiter_radius_override_m = 0.0f;
+}
+
+void ModeLoiter::set_radius_override(float radius_m)
+{
+    _loiter_radius_override_m = MAX(0.0f, radius_m);
+}
+
 void ModeLoiter::update()
 {
     // distance to the waypoint center
     _distance_to_destination = rover.current_loc.get_distance(_destination);
 
     // user's configured loiter radius (e.g., 30 m for motorboats, sailboat-specific otherwise)
-    const float loiter_radius =
+    float loiter_radius =
         g2.sailboat.tack_enabled() ? g2.sailboat.get_loiter_radius() : g2.loit_radius;
+    if (is_positive(_loiter_radius_override_m)) {
+        loiter_radius = _loiter_radius_override_m;
+    }
 
     // "good enough" tolerance around the exact center for stopping a return
     const float center_tol = 3.5f;  // TODO: consider parameterizing (e.g., LOIT_CENTER_TOL)
