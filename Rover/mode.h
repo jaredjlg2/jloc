@@ -366,6 +366,7 @@ private:
     uint16_t loiter_duration;       // How long we should loiter at the nav_waypoint (time in seconds)
     uint32_t loiter_start_time;     // How long have we been loitering - The start time in millis
     bool previously_reached_wp;     // set to true if we have EVER reached the waypoint
+    float _loiter_radius_override_m = 0.0f;
 
     // Guided-within-Auto variables
     struct {
@@ -654,12 +655,16 @@ public:
     // return distance (in meters) to destination
     float get_distance_to_destination() const override { return _distance_to_destination; }
 
+    void set_radius_override(float radius_m);
+
 protected:
 
     bool _enter() override;
+    void _exit() override;
 
     Location _destination;      // target location to hold position around
     float _desired_speed;       // desired speed (ramped down from initial speed to zero)
+    float _loiter_radius_override_m = 0.0f;
 };
 
 class ModeManual : public Mode
