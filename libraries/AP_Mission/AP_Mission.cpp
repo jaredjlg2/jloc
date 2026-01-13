@@ -1662,9 +1662,9 @@ bool AP_Mission::mission_cmd_to_mavlink_int(const AP_Mission::Mission_Command& c
         packet.param2 = fabsf(cmd.content.location.alt) * 0.01f;
 #endif
         if (cmd.content.location.loiter_ccw) {
-            packet.param3 = packet.param3 == 0 ? -1 : -fabsf(packet.param3);
+            packet.param3 = is_zero(packet.param3) ? -1 : -fabsf(packet.param3);
         } else {
-            packet.param3 = packet.param3 == 0 ? 1 : fabsf(packet.param3);
+            packet.param3 = is_zero(packet.param3) ? 1 : fabsf(packet.param3);
         }
         packet.param4 = cmd.content.location.loiter_xtrack; // 0 to xtrack from center of waypoint, 1 to xtrack from tangent exit location
         break;
