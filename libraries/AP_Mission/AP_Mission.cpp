@@ -1112,7 +1112,23 @@ MAV_MISSION_RESULT AP_Mission::mavlink_int_to_mission_cmd(const mavlink_mission_
     break;
 
     case MAV_CMD_NAV_LOITER_TIME:                       // MAV ID: 19
-        cmd.p1 = packet.param1;                         // loiter time in seconds uses all 16 bits, 8bit seconds is too small. No room for radius.
+        // loiter time in seconds uses all 16 bits, 8bit seconds is too small. No room for radius.
+#if APM_BUILD_TYPE(APM_BUILD_ArduPlane)
+        {
+            const float abs_radius = fabsf(packet.param3);
+            if (abs_radius > 0 && abs_radius <= 255 &&
+                packet.param1 >= 0 && packet.param1 <= 255) {
+                const uint16_t time_s = MIN(255U, static_cast<uint16_t>(lroundf(packet.param1)));
+                const uint16_t radius_m = MIN(255U, static_cast<uint16_t>(lroundf(abs_radius)));
+                cmd.p1 = time_s | (radius_m << 8);
+                cmd.type_specific_bits |= (1U << 0);
+            } else {
+                cmd.p1 = packet.param1;
+            }
+        }
+#else
+        cmd.p1 = packet.param1;
+#endif
 #if APM_BUILD_TYPE(APM_BUILD_Rover)
         // store radius in the location altitude field (rover does not use altitude)
         cmd.content.location.alt = lroundf(packet.param2 * 100.0f);
@@ -1636,13 +1652,19 @@ bool AP_Mission::mission_cmd_to_mavlink_int(const AP_Mission::Mission_Command& c
 
     case MAV_CMD_NAV_LOITER_TIME:                       // MAV ID: 19
         packet.param1 = cmd.p1;                         // loiter time in seconds
+#if APM_BUILD_TYPE(APM_BUILD_ArduPlane)
+        if (cmd.type_specific_bits & (1U<<0)) {
+            packet.param1 = LOWBYTE(cmd.p1);
+            packet.param3 = HIGHBYTE(cmd.p1);
+        }
+#endif
 #if APM_BUILD_TYPE(APM_BUILD_Rover)
         packet.param2 = fabsf(cmd.content.location.alt) * 0.01f;
 #endif
         if (cmd.content.location.loiter_ccw) {
-            packet.param3 = -1;
+            packet.param3 = packet.param3 == 0 ? -1 : -fabsf(packet.param3);
         } else {
-            packet.param3 = 1;
+            packet.param3 = packet.param3 == 0 ? 1 : fabsf(packet.param3);
         }
         packet.param4 = cmd.content.location.loiter_xtrack; // 0 to xtrack from center of waypoint, 1 to xtrack from tangent exit location
         break;

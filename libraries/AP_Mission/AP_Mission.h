@@ -435,6 +435,28 @@ public:
             }
             return turns;
         }
+
+        /*
+          return the loiter time (seconds) for a LOITER_TIME command
+          with optional radius storage in cmd.p1 and type_specific_bits
+         */
+        uint16_t get_loiter_time_s(void) const {
+            if (type_specific_bits & (1U<<0)) {
+                return LOWBYTE(p1);
+            }
+            return p1;
+        }
+
+        /*
+          return the loiter radius (meters) for a LOITER_TIME command
+          with optional radius storage in cmd.p1 and type_specific_bits
+         */
+        uint16_t get_loiter_radius_m(void) const {
+            if (type_specific_bits & (1U<<0)) {
+                return HIGHBYTE(p1);
+            }
+            return 0;
+        }
     };
 
 
